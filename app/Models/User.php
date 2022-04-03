@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -41,4 +40,14 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function saved_places()
+    {
+        return $this->hasMany(UserSavedPlace::class, 'user_id', 'id');
+    }
+
+    public function posted_places()
+    {
+        return $this->hasMany(Place::class, 'author_id', 'id');
+    }
 }
