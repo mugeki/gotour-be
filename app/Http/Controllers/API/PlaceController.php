@@ -2,33 +2,40 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Helpers\ResponseBuilder;
 use App\Http\Controllers\Controller;
 use App\Models\Place;
 use App\Models\PlaceImage;
 use App\Models\UserRatedPlace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class PlaceController extends Controller
 {
+    protected $rules = [
+        'name' => 'required|string|max:255',
+        'location' => 'required|string',
+        'description' => 'required|string',
+        'img_urls' => 'required|array',
+    ];
+
     public function post(Request $request)
     {
-        $validated_data = $request->validate([
-            'name' => 'required|string|max:255',
-            'location' => 'required|string',
-            'description' => 'required|string',
-            'img_urls' => 'required|array',
-        ]);
+        $validator = Validator::make($request->all(), self::$rules);
+        if ($validator->fails()) {
+            return ResponseBuilder::error($validator->errors()->all(), 'Validation Error', 422);
+        }
 
         $place = Place::create([
             'author_id' => Auth::user()->id,
-            'name' => $validated_data['name'],
-            'location' => $validated_data['location'],
-            'description' => $validated_data['description'],
+            'name' => $request->name,
+            'location' => $request->location,
+            'description' => $request->description,
         ]);
 
         $response = json_decode($request->getContent());
-        foreach ($validated_data['img_urls'] as $img_url) {
+        foreach ($request->img_urls as $img_url) {
             $place_image = PlaceImage::create([
                 'place_id' => $place->id,
                 'img_url' => $img_url,
@@ -36,7 +43,7 @@ class PlaceController extends Controller
             array_push($response->img_urls, $place_image->img_url);
         }
 
-        return response()->json($response);
+        return ResponseBuilder::success($response, "Place created");
     }
 
     public function get(Request $request)
@@ -70,18 +77,18 @@ class PlaceController extends Controller
             unset($place->place_images);
         }
 
-        return response()->json($response);
+        return ResponseBuilder::success($response, "Success");
     }
 
     public function get_by_id(int $id)
     {
-        $place = Place::with('place_images')->find($id);
-        $place->img_urls = $place->place_images->map(function ($place_image) {
+        $response = Place::with('place_images')->find($id);
+        $response->img_urls = $response->place_images->map(function ($place_image) {
             return $place_image->img_url;
         });
-        unset($place->place_images);
+        unset($response->place_images);
 
-        return response()->json($place);
+        return ResponseBuilder::success($response, "Success");
     }
 
     public function get_by_user()
@@ -98,21 +105,19 @@ class PlaceController extends Controller
 
     public function update(int $id, Request $request)
     {
-        $validated_data = $request->validate([
-            'name' => 'required|string|max:255',
-            'location' => 'required|string',
-            'description' => 'required|string',
-            'img_urls' => 'required|array',
-        ]);
+        $validator = Validator::make($request->all(), self::$rules);
+        if ($validator->fails()) {
+            return ResponseBuilder::error($validator->errors()->all(), 'Validation Error', 422);
+        }
 
         $place = Place::find($id);
-        $place->name = $validated_data['name'];
-        $place->location = $validated_data['location'];
-        $place->description = $validated_data['description'];
+        $place->name = $request->name;
+        $place->location = $request->location;
+        $place->description = $request->description;
         $place->save();
 
         $response = json_decode($request->getContent());
-        foreach ($validated_data['img_urls'] as $img_url) {
+        foreach ($request->img_urls as $img_url) {
             $place_image = PlaceImage::firstOrCreate([
                 'place_id' => $place->id,
                 'img_url' => $img_url,
@@ -120,7 +125,7 @@ class PlaceController extends Controller
             array_push($response->img_urls, $place_image->img_url);
         }
 
-        return response()->json($response);
+        return ResponseBuilder::success($response, "Place updated");
     }
 
     public function delete(int $id)
@@ -128,25 +133,29 @@ class PlaceController extends Controller
         $place = Place::find($id);
         $place->delete();
 
-        return response()->json(['message' => 'Place deleted']);
+        return ResponseBuilder::success(null, "Place deleted");
     }
 
     public function rate(int $id, Request $request)
     {
-        $validated_data = $request->validate([
+
+        $validator = Validator::make($request->all(), [
             'rating' => 'required|int|min:0|max:5',
         ]);
+        if ($validator->fails()) {
+            return ResponseBuilder::error($validator->errors()->all(), 'Validation Error', 422);
+        }
 
         UserRatedPlace::updateOrCreate([
             'user_id' => Auth::user()->id,
             'place_id' => $id,
-        ], ['rating' => $validated_data['rating']]);
+        ], ['rating' => $request->rating]);
 
         $place = Place::find($id);
         $new_rating = $place->user_rated_places()->avg('rating');
         $place->rating = $new_rating;
         $place->save();
 
-        return response()->json(['message' => 'Rating updated']);
+        return ResponseBuilder::success($place, "Place rated");
     }
 }
