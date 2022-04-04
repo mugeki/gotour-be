@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Helpers\ResponseBuilder;
 use App\Http\Controllers\Controller;
 use App\Models\UserSavedPlace;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +16,8 @@ class WishlistController extends Controller
             'user_id' => $user->id,
             'place_id' => $place_id,
         ]);
-        return response()->json(['message' => 'Added to wishlist']);
+
+        return ResponseBuilder::success(null, "Place added to wishlist");
     }
 
     public function delete(int $place_id)
@@ -26,7 +28,7 @@ class WishlistController extends Controller
             ->first()
             ->delete();
 
-        return response()->json(['message' => 'Removed from wishlist']);
+        return ResponseBuilder::success(null, "Place removed from wishlist");
     }
 
     public function get()
@@ -41,6 +43,7 @@ class WishlistController extends Controller
             unset($place->place_images);
             array_push($places, $place);
         }
-        return response()->json($places);
+
+        return ResponseBuilder::success($places, "Wishlist retrieved");
     }
 }
