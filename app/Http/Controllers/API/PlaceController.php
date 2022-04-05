@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Validator;
 
 class PlaceController extends Controller
 {
-    protected $rules = [
+    protected static $rules = [
         'name' => 'required|string|max:255',
         'location' => 'required|string',
         'description' => 'required|string',
@@ -24,7 +24,7 @@ class PlaceController extends Controller
     {
         $validator = Validator::make($request->all(), self::$rules);
         if ($validator->fails()) {
-            return ResponseBuilder::error($validator->errors()->all(), 'Validation Error', 422);
+            return ResponseBuilder::error($validator->errors()->all(), 422);
         }
 
         $place = Place::create([
@@ -107,7 +107,7 @@ class PlaceController extends Controller
     {
         $validator = Validator::make($request->all(), self::$rules);
         if ($validator->fails()) {
-            return ResponseBuilder::error($validator->errors()->all(), 'Validation Error', 422);
+            return ResponseBuilder::error($validator->errors()->all(), 422);
         }
 
         $place = Place::find($id);
@@ -143,7 +143,7 @@ class PlaceController extends Controller
             'rating' => 'required|int|min:0|max:5',
         ]);
         if ($validator->fails()) {
-            return ResponseBuilder::error($validator->errors()->all(), 'Validation Error', 422);
+            return ResponseBuilder::error($validator->errors()->all(), 422);
         }
 
         UserRatedPlace::updateOrCreate([
