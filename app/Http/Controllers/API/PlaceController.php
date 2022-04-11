@@ -61,15 +61,11 @@ class PlaceController extends Controller
                 ->where('location', 'like', '%' . $s . '%')
                 ->orWhere('name', 'like', '%' . $s . '%')
                 ->orderBy($order_by, 'desc')
-                ->offset($offset)
-                ->limit($limit)
-                ->get();
+                ->paginate(9);
         } else {
             $response = Place::with('place_images')
                 ->orderBy($order_by, 'desc')
-                ->offset($offset)
-                ->limit($limit)
-                ->get();
+                ->paginate(9);
         }
 
         foreach ($response as $place) {
