@@ -18,12 +18,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout']);
 
 Route::get('/place', [PlaceController::class, 'get']);
 Route::get('/place/{id}', [PlaceController::class, 'get_by_id']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+
     Route::post('/place', [PlaceController::class, 'post']);
     Route::put('/place/{id}', [PlaceController::class, 'update']);
     Route::put('/place/{id}/rate', [PlaceController::class, 'rate']);
