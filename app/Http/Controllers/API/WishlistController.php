@@ -40,6 +40,7 @@ class WishlistController extends Controller
         foreach ($user_wishlist as $wishlist_item) {
             $place = $wishlist_item->places()->with('place_images')->first();
             $place->img_urls = $place->place_images->pluck('img_url');
+            $place->rated_by_count = $place->user_rated_places()->count();
             unset($place->place_images);
             array_push($places, $place);
         }
