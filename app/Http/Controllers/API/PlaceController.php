@@ -13,16 +13,16 @@ use Illuminate\Support\Facades\Validator;
 
 class PlaceController extends Controller
 {
-    protected static $rules = [
-        'name' => 'required|string|max:255',
-        'location' => 'required|string',
-        'description' => 'required|string',
-        'img_urls' => 'required|array',
-    ];
-
     public function post(Request $request)
     {
-        $validator = Validator::make($request->all(), self::$rules);
+        $rules = [
+            'name' => 'required|string|max:255',
+            'location' => 'required|string',
+            'description' => 'required|string',
+            'img_urls' => 'required|array',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return ResponseBuilder::error($validator->errors()->all(), 422);
         }
@@ -35,6 +35,8 @@ class PlaceController extends Controller
         ]);
 
         $response = json_decode($request->getContent());
+        $response->id = $place->id;
+        $response->rated_by_count = $place->user_rated_places()->count();
         foreach ($request->img_urls as $img_url) {
             $place_image = PlaceImage::create([
                 'place_id' => $place->id,
@@ -48,10 +50,6 @@ class PlaceController extends Controller
 
     public function get(Request $request)
     {
-        $page = $request->input('page') || 1;
-        $limit = $page == 1 ? 9 : $page * 9;
-        $offset = $page == 1 ? 0 : $page * $limit;
-
         $sort_param = $request->input('sort_by');
         $order_by = $sort_param == 'rating' ? 'rating' : 'created_at';
 
@@ -69,6 +67,7 @@ class PlaceController extends Controller
         }
 
         foreach ($response as $place) {
+            $place->rated_by_count = $place->user_rated_places()->count();
             $place->img_urls = $place->place_images->pluck('img_url');
             unset($place->place_images);
         }
@@ -82,6 +81,7 @@ class PlaceController extends Controller
         $response->img_urls = $response->place_images->map(function ($place_image) {
             return $place_image->img_url;
         });
+        $response->rated_by_count = $response->user_rated_places()->count();
         unset($response->place_images);
 
         return ResponseBuilder::success($response, "Success");
@@ -92,6 +92,7 @@ class PlaceController extends Controller
         $user = Auth::user();
         $places = Place::with('place_images')->where('author_id', $user->id)->get();
         foreach ($places as $place) {
+            $place->rated_by_count = $place->user_rated_places()->count();
             $place->img_urls = $place->place_images->pluck('img_url');
             unset($place->place_images);
         }
@@ -101,7 +102,14 @@ class PlaceController extends Controller
 
     public function update(int $id, Request $request)
     {
-        $validator = Validator::make($request->all(), self::$rules);
+        $rules = [
+            'name' => 'required|string|max:255',
+            'location' => 'required|string',
+            'description' => 'required|string',
+            'img_urls' => 'array',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return ResponseBuilder::error($validator->errors()->all(), 422);
         }
@@ -113,6 +121,8 @@ class PlaceController extends Controller
         $place->save();
 
         $response = json_decode($request->getContent());
+        $response->id = $place->id;
+        $response->rated_by_count = $place->user_rated_places()->count();
         foreach ($request->img_urls as $img_url) {
             $place_image = PlaceImage::firstOrCreate([
                 'place_id' => $place->id,
@@ -151,6 +161,8 @@ class PlaceController extends Controller
         $new_rating = $place->user_rated_places()->avg('rating');
         $place->rating = $new_rating;
         $place->save();
+
+        $place->rated_by_count = $place->user_rated_places()->count();
 
         return ResponseBuilder::success($place, "Place rated");
     }
